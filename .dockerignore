@@ -1,0 +1,12 @@
+.git
+.github
+.venv
+.python-version
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.db
+test_*.py
+test_output_*.png
+uv.lock (unless you want strict parity)

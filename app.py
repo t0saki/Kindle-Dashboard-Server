@@ -1,4 +1,4 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, send_file
 import datetime
 from concurrent.futures import ThreadPoolExecutor
 # Import from our new data layer
@@ -74,5 +74,27 @@ def dashboard():
                            news=news,
                            updated_at=datetime.datetime.now().strftime("%H:%M"))
 
+@app.route('/render')
+def render_dashboard():
+    from renderer import render_dashboard_to_bytes, TARGET_SIZE
+    
+    # We need to render the dashboard page.
+    # Assuming the dashboard is running on localhost at the port configured.
+    # We can default to localhost:5000 if not specified.
+    # Note: When running in production (e.g. gunicorn), port might vary.
+    # For this local setup, we can hardcode or infer.
+    port = 5000 
+    dashboard_url = f"http://127.0.0.1:{port}/dashboard"
+    
+    try:
+        image_bytes = render_dashboard_to_bytes(dashboard_url)
+        return send_file(
+            image_bytes, 
+            mimetype='image/png',
+            as_attachment=False, 
+            download_name='dashboard.png'
+        )
+    except Exception as e:
+        return f"Error rendering dashboard: {e}", 500
 if __name__ == '__main__':
     app.run(debug=True, port=5000, host='0.0.0.0')

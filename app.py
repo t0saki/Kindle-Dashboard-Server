@@ -1,5 +1,7 @@
 from flask import Flask, render_template, send_file
 import datetime
+import time
+import io
 from concurrent.futures import ThreadPoolExecutor
 # Import from our new data layer
 from data_services import get_weather, get_calendar_info, get_hacker_news, generate_sparkline
@@ -10,6 +12,11 @@ app = Flask(__name__)
 
 # --- Configuration (Externalizable) ---
 # ... (Config can stay here if app specific, or move to config.py later)
+
+# Simple in-memory cache for the /render endpoint
+# Format: {"data": bytes, "timestamp": float}
+_render_cache = {"data": None, "timestamp": 0}
+CACHE_DURATION = 60 # 1 minute
 
 @app.route('/dashboard')
 def dashboard():
@@ -76,25 +83,47 @@ def dashboard():
 
 @app.route('/render')
 def render_dashboard():
-    from renderer import render_dashboard_to_bytes, TARGET_SIZE
+    from renderer import render_dashboard_to_bytes
+    global _render_cache
     
-    # We need to render the dashboard page.
-    # Assuming the dashboard is running on localhost at the port configured.
-    # We can default to localhost:5000 if not specified.
-    # Note: When running in production (e.g. gunicorn), port might vary.
-    # For this local setup, we can hardcode or infer.
-    port = 5000 
-    dashboard_url = f"http://127.0.0.1:{port}/dashboard"
+    current_time = time.time()
     
-    try:
-        image_bytes = render_dashboard_to_bytes(dashboard_url)
-        return send_file(
-            image_bytes, 
+    # 1. Check if we have a valid cache
+    if _render_cache["data"] and (current_time - _render_cache["timestamp"] < CACHE_DURATION):
+        print(f"Returning cached image (age: {int(current_time - _render_cache['timestamp'])}s)")
+        response = send_file(
+            io.BytesIO(_render_cache["data"]), 
             mimetype='image/png',
             as_attachment=False, 
             download_name='dashboard.png'
         )
+        response.headers['Cache-Control'] = f'public, max-age={CACHE_DURATION}'
+        return response
+
+    # 2. If not cached, render it
+    port = 5000 
+    dashboard_url = f"http://127.0.0.1:{port}/dashboard"
+    
+    try:
+        image_io = render_dashboard_to_bytes(dashboard_url)
+        # Read the io.BytesIO content to store it in cache
+        image_bytes = image_io.getvalue()
+        
+        # Update Cache
+        _render_cache["data"] = image_bytes
+        _render_cache["timestamp"] = current_time
+        
+        response = send_file(
+            io.BytesIO(image_bytes), 
+            mimetype='image/png',
+            as_attachment=False, 
+            download_name='dashboard.png'
+        )
+        response.headers['Cache-Control'] = f'public, max-age={CACHE_DURATION}'
+        return response
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return f"Error rendering dashboard: {e}", 500
 if __name__ == '__main__':
     app.run(debug=True, port=5000, host='0.0.0.0')

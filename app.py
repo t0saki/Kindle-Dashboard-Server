@@ -2,6 +2,7 @@ from flask import Flask, render_template, send_file
 import datetime
 import time
 import io
+import hashlib
 from concurrent.futures import ThreadPoolExecutor
 # Import from our new data layer
 from data_services import get_weather, get_calendar_info, get_hacker_news, generate_sparkline
@@ -82,23 +83,38 @@ def dashboard():
                            updated_at=datetime.datetime.now().strftime("%H:%M"))
 
 @app.route('/render')
+@app.route('/render.png')
 def render_dashboard():
     from renderer import render_dashboard_to_bytes
     global _render_cache
     
     current_time = time.time()
     
-    # 1. Check if we have a valid cache
-    if _render_cache["data"] and (current_time - _render_cache["timestamp"] < CACHE_DURATION):
-        print(f"Returning cached image (age: {int(current_time - _render_cache['timestamp'])}s)")
+    def prepare_response(data, timestamp):
         response = send_file(
-            io.BytesIO(_render_cache["data"]), 
+            io.BytesIO(data), 
             mimetype='image/png',
             as_attachment=False, 
             download_name='dashboard.png'
         )
-        response.headers['Cache-Control'] = f'public, max-age={CACHE_DURATION}'
+        # Cloudflare loves extensions and explicit CDN cache headers
+        # s-maxage is for shared caches (like CF)
+        response.headers['Cache-Control'] = f'public, max-age={CACHE_DURATION}, s-maxage={CACHE_DURATION}'
+        
+        # Last-Modified helps CF with validation
+        last_modified = datetime.datetime.fromtimestamp(timestamp, datetime.UTC)
+        response.headers['Last-Modified'] = last_modified.strftime('%a, %d %b %Y %H:%M:%S GMT')
+        
+        # ETag for strong validation
+        etag = hashlib.md5(data).hexdigest()
+        response.set_etag(etag)
+        
         return response
+
+    # 1. Check if we have a valid cache
+    if _render_cache["data"] and (current_time - _render_cache["timestamp"] < CACHE_DURATION):
+        print(f"Returning cached image (age: {int(current_time - _render_cache['timestamp'])}s)")
+        return prepare_response(_render_cache["data"], _render_cache["timestamp"])
 
     # 2. If not cached, render it
     port = 5000 
@@ -113,14 +129,7 @@ def render_dashboard():
         _render_cache["data"] = image_bytes
         _render_cache["timestamp"] = current_time
         
-        response = send_file(
-            io.BytesIO(image_bytes), 
-            mimetype='image/png',
-            as_attachment=False, 
-            download_name='dashboard.png'
-        )
-        response.headers['Cache-Control'] = f'public, max-age={CACHE_DURATION}'
-        return response
+        return prepare_response(image_bytes, current_time)
     except Exception as e:
         import traceback
         traceback.print_exc()

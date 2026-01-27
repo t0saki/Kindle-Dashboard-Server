@@ -41,7 +41,7 @@
 
 ```bash
 docker pull ghcr.io/t0saki/kindle-dashboard-server:latest
-docker run -p 5000:5000 ghcr.io/<your-username>/kindle-dashboard-server:latest
+docker run -p 5000:5000 ghcr.io/t0saki/kindle-dashboard-server:latest
 ```
 
 ### 本地运行

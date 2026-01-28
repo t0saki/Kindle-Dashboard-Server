@@ -1,10 +1,12 @@
 # Kindle Oasis Dashboard Server
 
+[中文](README.md)
+
 This is a highly configurable **E-ink dashboard server** application, primarily optimized for the Kindle Oasis 2 but adaptable to various devices.
 
 It is intended to be used with a KUAL extension (or other tools) on the Kindle to provide a high-contrast, multi-language supported, and aesthetically pleasing "Always-on" second screen. With the new decoupled configuration, it can be easily adjusted for different screen resolutions and regions.
 
-![Dashboard Preview](test_output_dashboard.png)
+![Real Shot](demo_shot.avif)
 
 *   **E-ink & Layout Optimization**:
     *   Bento Grid layout provides modular information blocks.

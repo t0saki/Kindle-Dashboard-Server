@@ -1,10 +1,12 @@
 # Kindle Oasis Dashboard Server
 
+[English](README-en.md)
+
 这是一个专为 **Kindle Oasis 2** (7英寸, 1680x1264) 设计的 E-ink 仪表盘服务端程序。
 
 它旨在配合 Kindle 上的 KUAL 扩展（或其他浏览器/截图工具）使用，提供一个高对比度、低刷新率、信息丰富且美观的 "Always-on" 桌面副屏。
 
-![Dashboard Preview](test_output_dashboard.png)
+![Real Shot](demo_shot.avif)
 
 *   **全球化支持**: 
     *   **多语言界面**: 原生支持中文 (CN) 和英文 (EN) 切换，自动调整排版以防止溢出（如长单词排版）。

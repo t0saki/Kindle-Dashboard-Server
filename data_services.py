@@ -1,5 +1,6 @@
 import requests
 import datetime
+from zoneinfo import ZoneInfo
 import yfinance as yf
 from lunardate import LunarDate
 import holidays
@@ -561,7 +562,7 @@ WEEKDAYS_CN = {
 }
 
 def get_calendar_info():
-    now = datetime.datetime.now()
+    now = datetime.datetime.now(ZoneInfo(Config.TIMEZONE))
     lunar = LunarDate.fromSolarDate(now.year, now.month, now.day)
     
     if Config.LANGUAGE == 'EN':

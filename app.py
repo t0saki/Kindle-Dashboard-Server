@@ -1,5 +1,6 @@
 from flask import Flask, render_template, send_file
 import datetime
+from zoneinfo import ZoneInfo
 import time
 import io
 import hashlib
@@ -73,7 +74,7 @@ def dashboard():
                            finance=finance_data, 
                            calendar=calendar, 
                            news=news,
-                           updated_at=datetime.datetime.now().strftime("%H:%M"),
+                           updated_at=datetime.datetime.now(ZoneInfo(Config.TIMEZONE)).strftime("%H:%M"),
                            config=Config)
 
 @app.route('/render')

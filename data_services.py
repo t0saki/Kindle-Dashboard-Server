@@ -281,8 +281,9 @@ def get_weather(lat=DEFAULT_LAT, lon=DEFAULT_LON):
                 "desc": d_desc
             }
 
-        # 4. Today's Weather Alert (Scan hourly for rain/snow from NOW until Midnight)
+        # 4. Weather Alert (Scan hourly for rain/snow for next 48 hours)
         alert_msg = ""
+        upcoming_alerts = []  # List of (hours_from_now, weather_type, datetime)
         try:
            # Find index of current hour
            now_hour_idx = -1
@@ -293,33 +294,47 @@ def get_weather(lat=DEFAULT_LAT, lon=DEFAULT_LON):
                    break
            
            if now_hour_idx != -1:
-               # Scan until end of today
-               found_alert = False
-               for i in range(now_hour_idx + 1, len(times)):
+               # Scan next 48 hours
+               max_hours = min(now_hour_idx + 49, len(times))  # 48 hours from now
+               for i in range(now_hour_idx + 1, max_hours):
                    t_dt = datetime.datetime.fromisoformat(times[i])
-                   if t_dt.day != now_dt.day: break # Stop if next day
+                   hours_from_now = i - now_hour_idx
                    
                    code = codes[i]
-                   # Rain/Snow/Thunder codes
-                   # Rain: 61,63,65, 80,81,82
-                   # Snow: 71,73,75, 85,86
-                   # Thunder: 95,96,99
-                   # Freezing Rain: 66,67
-                   if code in [61, 63, 65, 80, 81, 82, 66, 67]:
-                       alert_msg = f"{t_dt.hour}点有雨"
-                       found_alert = True
-                   elif code in [71, 73, 75, 85, 86, 77]:
-                       alert_msg = f"{t_dt.hour}点有雪"
-                       found_alert = True
-                   elif code in [95, 96, 99]:
-                       alert_msg = f"{t_dt.hour}点雷雨"
-                       found_alert = True
+                   weather_type = None
                    
-                   if found_alert: break
+                   # Rain/Snow/Thunder codes
+                   if code in [61, 63, 65, 80, 81, 82, 66, 67]:
+                       weather_type = "雨"
+                   elif code in [71, 73, 75, 85, 86, 77]:
+                       weather_type = "雪"
+                   elif code in [95, 96, 99]:
+                       weather_type = "雷雨"
+                   elif code in [51, 53, 55]:  # Drizzle
+                       weather_type = "小雨"
+                   
+                   if weather_type:
+                       upcoming_alerts.append((hours_from_now, weather_type, t_dt))
+               
+               # Generate alert message
+               if upcoming_alerts:
+                   first_alert = upcoming_alerts[0]
+                   hours, wtype, alert_dt = first_alert
+                   
+                   if hours <= 3:
+                       alert_msg = f"{hours}H后有{wtype}"
+                   elif alert_dt.day == now_dt.day:
+                       alert_msg = f"今天{alert_dt.hour}点有{wtype}"
+                   elif alert_dt.day == now_dt.day + 1 or (now_dt.day == 31 and alert_dt.day == 1):
+                       alert_msg = f"明天{alert_dt.hour}点有{wtype}"
+                   else:
+                       alert_msg = f"{hours}H后有{wtype}"
         except Exception as e:
             print(f"Alert Logic Error: {e}")
 
         weather_data['current']['alert'] = alert_msg
+        weather_data['current']['has_warning'] = False  # TODO: Set to True when government warning exists
+        weather_data['current']['upcoming_alerts'] = upcoming_alerts[:5]  # Store first 5 alerts
             
         weather_cache.set('weather_data_v2', weather_data)
         return weather_data

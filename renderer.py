@@ -2,9 +2,7 @@ import io
 import datetime
 from playwright.sync_api import sync_playwright
 from PIL import Image, ImageOps
-
-# Configuration for Kindle Oasis 2
-TARGET_SIZE = (1264, 1680)
+from config import Config
 
 def capture_dashboard(url):
     """
@@ -14,9 +12,8 @@ def capture_dashboard(url):
     """
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
-        # Kindle Oasis 2 resolution is 1680x1264, but we display it rotated.
-        # The User's CSS has width: 1680px; height: 1264px; (Landscape)
-        # We need to capture it as is.
+        # Capture at design resolution (1680x1264) irrespective of output resolution
+        # to ensure layout is correct as per user request.
         page = browser.new_page(viewport={"width": 1680, "height": 1264})
         
         try:
@@ -87,11 +84,8 @@ def process_image_for_kindle(input_bytes):
             img = img.convert('RGB')
 
         # 2. Resize/Fit
-        # The user requested 1680x1264 specifically in the prompt.
-        # The user's sample code used (1264, 1680) which might be for portrait.
-        # Since the Dashboard is designed as Landscape 1680x1264, we keep it as is.
-        # If the screenshot is already 1680x1264, ImageOps.fit is redundant but safe.
-        target_size = (1680, 1264)
+        # We use the configured screen resolution as the target size.
+        target_size = (Config.SCREEN_WIDTH, Config.SCREEN_HEIGHT)
         img_fitted = ImageOps.fit(
             img, 
             target_size, 

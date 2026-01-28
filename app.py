@@ -6,18 +6,15 @@ import hashlib
 from concurrent.futures import ThreadPoolExecutor
 # Import from our new data layer
 from data_services import get_weather, get_calendar_info, get_hacker_news, generate_sparkline
+from config import Config
 
 executor = ThreadPoolExecutor(max_workers=20)
 
 app = Flask(__name__)
 
-# --- Configuration (Externalizable) ---
-# ... (Config can stay here if app specific, or move to config.py later)
-
 # Simple in-memory cache for the /render endpoint
 # Format: {"data": bytes, "timestamp": float}
 _render_cache = {"data": None, "timestamp": 0}
-CACHE_DURATION = 60 # 1 minute
 
 @app.route('/dashboard')
 def dashboard():
@@ -27,11 +24,7 @@ def dashboard():
     future_news = executor.submit(get_hacker_news)
 
     # Finance Tasks
-    tickers = [
-        {"symbol": "SGDCNY=X", "name": "SGD/CNY"},
-        {"symbol": "CNY=X", "name": "USD/CNY"}, 
-        {"symbol": "BTC-USD", "name": "BTC/USD"}
-    ]
+    tickers = Config.get_finance_tickers()
     future_finance = [(t, executor.submit(generate_sparkline, t['symbol'])) for t in tickers]
 
     # Gather Results
@@ -80,7 +73,8 @@ def dashboard():
                            finance=finance_data, 
                            calendar=calendar, 
                            news=news,
-                           updated_at=datetime.datetime.now().strftime("%H:%M"))
+                           updated_at=datetime.datetime.now().strftime("%H:%M"),
+                           config=Config)
 
 @app.route('/render')
 @app.route('/render.png')
@@ -99,7 +93,7 @@ def render_dashboard():
         )
         # Cloudflare loves extensions and explicit CDN cache headers
         # s-maxage is for shared caches (like CF)
-        response.headers['Cache-Control'] = f'public, max-age={CACHE_DURATION}, s-maxage={CACHE_DURATION}'
+        response.headers['Cache-Control'] = f'public, max-age={Config.CACHE_TTL_RENDER}, s-maxage={Config.CACHE_TTL_RENDER}'
         
         # Last-Modified helps CF with validation
         last_modified = datetime.datetime.fromtimestamp(timestamp, datetime.UTC)
@@ -112,12 +106,12 @@ def render_dashboard():
         return response
 
     # 1. Check if we have a valid cache
-    if _render_cache["data"] and (current_time - _render_cache["timestamp"] < CACHE_DURATION):
+    if _render_cache["data"] and (current_time - _render_cache["timestamp"] < Config.CACHE_TTL_RENDER):
         print(f"Returning cached image (age: {int(current_time - _render_cache['timestamp'])}s)")
         return prepare_response(_render_cache["data"], _render_cache["timestamp"])
 
     # 2. If not cached, render it
-    port = 5000 
+    port = Config.PORT
     dashboard_url = f"http://127.0.0.1:{port}/dashboard"
     
     try:
@@ -134,5 +128,6 @@ def render_dashboard():
         import traceback
         traceback.print_exc()
         return f"Error rendering dashboard: {e}", 500
+
 if __name__ == '__main__':
-    app.run(debug=True, port=5000, host='0.0.0.0')
+    app.run(debug=True, port=Config.PORT, host=Config.HOST)

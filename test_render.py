@@ -2,8 +2,10 @@ import requests
 from PIL import Image
 import io
 
+from config import Config
+
 def test_render():
-    url = "http://127.0.0.1:5000/render"
+    url = f"http://127.0.0.1:{Config.PORT}/render"
     print(f"Requesting {url}...")
     try:
         r = requests.get(url, timeout=30)
@@ -16,8 +18,8 @@ def test_render():
             print(f"Image Size: {img.size}")
             print(f"Image Mode: {img.mode}")
             
-            if img.size == (1680, 1264):
-                print("PASS: Size is 1680x1264")
+            if img.size == (Config.SCREEN_WIDTH, Config.SCREEN_HEIGHT):
+                print(f"PASS: Size is {Config.SCREEN_WIDTH}x{Config.SCREEN_HEIGHT}")
             else:
                 print(f"FAIL: Size mismatch {img.size}")
                 

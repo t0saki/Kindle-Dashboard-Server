@@ -6,22 +6,20 @@
 
 ![Dashboard Preview](test_output_dashboard.png)
 
-## ✨ 功能特性
-
-*   **E-ink 极致优化**: 
-    *   纯黑白高对比度设计，去除灰色阶，确保在电子墨水屏上显示清晰锐利。
-    *   使用粗线条和大号字体，防止抗锯齿模糊。
-    *   Bento Grid 宫格布局，信息由块状分割，整洁有序。
+*   **全球化支持**: 
+    *   **多语言界面**: 原生支持中文 (CN) 和英文 (EN) 切换，自动调整排版以防止溢出（如长单词排版）。
+    *   **自定义地理位置**: 可配置全球任何城市的经纬度，自动获取当地天气及空气质量 (AQI)。
+    *   **多国节假日**: 集成 `holidays` 库，支持配置不同国家/地区的法定节假日。
 *   **丰富的数据展示**:
-    *   **新加坡天气**: 包含当前气温、湿度、降雨概率及未来数小时的天气趋势（针对新加坡优化的逻辑）。
-    *   **日历信息**: 包含公历日期、星期、**农历日期**以及**新加坡法定节假日**提醒。
-    *   **金融市场**: 实时追踪 SGD/CNY, USD/CNY 汇率及 Bitcoin 走势，并在服务端生成迷你趋势图 (Sparklines)。
-    *   **Hacker News**: 展示 Top 5 热门科技新闻，自动截断标题以适应排版。
+    *   **天气预报**: 包含气温、湿度、UV 指数、AQI、降雨概率及未来趋势趋势。
+    *   **日历信息**: 包含公历日期、星期、农历日期以及自定义节假日提醒。
+    *   **金融市场**: 实时追踪汇率、股票及加密货币走势，生成迷你趋势图 (Sparklines)。
+    *   **Hacker News**: 自动抓取热门科技新闻。
 *   **服务端自动化渲染**:
-    *   **Playwright 集成**: 内置 `/render` 接口，自动通过无头浏览器渲染并捕捉 1680x1264 图像。
-    *   **高质量抖动算法**: 自动应用 16 色灰度量化和 **Floyd-Steinberg 抖动**，为 E-ink 屏提供最佳观感。
-    *   **Docker 支持**: 一键部署，自动处理浏览器环境依赖。
-    *   **CI/CD**: 集成 GitHub Actions，自动构建并发布镜像。
+    *   **高度可配置**: 通过 `.env` 文件配置分辨率、语言、位置、数据源和缓存时间。
+    *   **高质量抖动算法**: 渲染 16 级灰度图像并应用 **Floyd-Steinberg 抖动**，为 E-ink 屏提供最佳观感。
+    *   **适配多设备**: Dashboard 布局保持 1680x1264 黄金比例以保证排版，但 `/render` 接口会自动缩放到你配置的任何屏幕分辨率。
+    *   **Docker & CI/CD**: 支持 Docker 部署，集成 GitHub Actions。
 
 ## 🛠 技术栈
 
@@ -35,39 +33,43 @@
     *   `holidays`: 节假日数据
     *   `matplotlib`: 生成趋势图
 
-## 🚀 快速开始
+### 1. 配置文件
 
-### 使用 Docker (推荐)
+项目使用 `.env` 文件进行配置。请先复制模版并根据需要修改：
+
+```bash
+cp .env_example .env
+nano .env # 修改经纬度、语言、分辨率等
+```
+
+### 2. 使用 Docker (推荐)
 
 ```bash
 docker pull ghcr.io/t0saki/kindle-dashboard-server:latest
-docker run -p 5000:5000 ghcr.io/t0saki/kindle-dashboard-server:latest
+# 注意：确保将 .env 文件映射到容器中
+docker run -p 5000:5000 --env-file .env ghcr.io/t0saki/kindle-dashboard-server:latest
 ```
 
-### 本地运行
+### 3. 本地运行
 
-1.  **安装 uv** (如果尚未安装): `curl -LsSf https://astral.sh/uv/install.sh | sh`
-2.  **安装依赖与浏览器**:
+1.  **安装 uv**: `curl -LsSf https://astral.sh/uv/install.sh | sh`
+2.  **准备环境**:
     ```bash
     uv sync
     uv run playwright install chromium --with-deps
     ```
-3.  **运行服务**:
-    ```bash
-    uv run app.py
-    ```
+3.  **运行**: `uv run app.py`
 
 ## 🔌 API 接口
 
 *   `GET /dashboard`: 返回响应式网页版的仪表盘。
-*   `GET /render`: 返回 **Kindle 优化版 (1680x1264, 16级灰度, 抖动处理)** 的 PNG 图片。这是 Kindle 客户端最常用的接口。
+*   `GET /render`: 返回 **Kindle 优化版 (根据配置的分辨率, 16级灰度, 抖动处理)** 的 PNG 图片。这是 Kindle 客户端最常用的接口。
 
-## 📱 Kindle 端设置 (简述)
+## 📱 配套客户端
 
-1.  确保 Kindle 已越狱并安装 KUAL。
-2.  使用脚本定期从 `http://<server-ip>:5000/render` 下载图片。
-3.  使用 `eips -g /path/to/downloaded.png` 将图片显示在屏幕上。
-4.  利用 Kindle 的局部刷新功能在预留区域（如时间区）快速更新，以达到省电效果。
+如果你拥有越狱后的 Kindle，可以配合以下客户端项目使用，实现自动化刷新与休眠管理：
+
+*   **[Kindle-Dashboard](https://github.com/t0saki/Kindle-Dashboard)**: 运行在 Kindle 上的 KUAL 插件脚本，负责自动联网、下载图片并使用 FBInk 高质量渲染。
 
 ## 📄 许可证
 

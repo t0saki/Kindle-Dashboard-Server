@@ -10,7 +10,6 @@ dependencies = [
     "lunardate>=0.2.2",
     "matplotlib>=3.10.8",
     "requests>=2.32.5",
-    "reverse-geocoder>=1.5.1",
     "yfinance>=1.1.0",
     "playwright>=1.49.0",
 ]

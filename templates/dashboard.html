@@ -56,12 +56,12 @@
                             {{ calendar.date_str }}
                         </div>
                         <!-- Weekday -->
-                        <div class="text-[7rem] font-black leading-none mb-3 uppercase tracking-tight">{{ calendar.weekday }}</div>
+                        <div class="{% if config.LANGUAGE == 'EN' %}text-[5.5rem]{% else %}text-[7rem]{% endif %} font-black leading-none mb-3 uppercase tracking-tight">{{ calendar.weekday }}</div>
                         <div class="text-6xl font-bold mt-1 text-gray-800">{{ calendar.lunar }}</div>
                         
                         {% if calendar.holiday %}
                         <div class="inline-block bg-black text-white text-4xl font-bold px-6 py-3 mt-4">
-                            节假日: {{ calendar.holiday }}
+                            {% if config.LANGUAGE == 'EN' %}Holiday:{% else %}节假日:{% endif %} {{ calendar.holiday }}
                         </div>
                         {% endif %}
                     </div>
@@ -69,10 +69,10 @@
                     <!-- Next Non-Working Day -->
                     {% if calendar.next_non_working %}
                     <div class="text-right pt-2">
-                         <div class="text-4xl font-bold text-gray-500 uppercase tracking-widest mb-2">Next Off</div>
+                         <div class="text-4xl font-bold text-gray-500 uppercase tracking-widest mb-2">{% if config.LANGUAGE == 'EN' %}Next Off{% else %}下个休息{% endif %}</div>
                          <div class="text-6xl font-black leading-none">{{ calendar.next_non_working.date }}</div>
                          <div class="text-4xl font-bold mt-2">{{ calendar.next_non_working.name }}</div>
-                         <div class="text-3xl font-bold text-gray-400 mt-2">In {{ calendar.next_non_working.days_away }} days</div>
+                         <div class="text-3xl font-bold text-gray-400 mt-2">{% if config.LANGUAGE == 'EN' %}In {{ calendar.next_non_working.days_away }} days{% else %}{{ calendar.next_non_working.days_away }}天后{% endif %}</div>
                     </div>
                     {% endif %}
                 </div>
@@ -93,14 +93,14 @@
                     <div class="flex justify-between items-start mb-4">
                         <!-- Left: City Name (smaller) -->
                         <div>
-                             <span class="text-4xl font-bold text-gray-700 block">Singapore</span>
+                             <span class="text-4xl font-bold text-gray-700 block">{{ weather.location.name }}</span>
                         </div>
                         
                         <!-- Right: Environmental Indicators Row -->
                         <div class="flex items-start gap-6">
                             <!-- Humidity -->
                             <div class="text-center">
-                                <div class="text-2xl font-bold text-gray-500 mb-1">湿度</div>
+                                <div class="text-2xl font-bold text-gray-500 mb-1">{% if config.LANGUAGE == 'EN' %}Humid{% else %}湿度{% endif %}</div>
                                 <div class="text-4xl font-black">{{ weather.current.humidity }}</div>
                             </div>
                             <!-- UV Index -->
@@ -110,12 +110,12 @@
                             </div>
                             <!-- AQI -->
                             <div class="text-center">
-                                <div class="text-2xl font-bold text-gray-500 mb-1">空气</div>
+                                <div class="text-2xl font-bold text-gray-500 mb-1">{% if config.LANGUAGE == 'EN' %}AQI{% else %}空气{% endif %}</div>
                                 <div class="text-4xl font-black">{{ weather.current.aqi }}</div>
                             </div>
                             <!-- Rain Probability -->
                             <div class="text-center">
-                                <div class="text-2xl font-bold text-gray-500 mb-1">降雨</div>
+                                <div class="text-2xl font-bold text-gray-500 mb-1">{% if config.LANGUAGE == 'EN' %}Rain{% else %}降雨{% endif %}</div>
                                 <div class="text-4xl font-black">{{ weather.current.rain_chance }}</div>
                             </div>
                         </div>
@@ -146,7 +146,7 @@
                                 {% else %}
                                 <!-- No rain/snow: Gray text -->
                                 <div class="inline-block text-3xl font-bold text-gray-400 px-1 py-1">
-                                    近期无雨雪
+                                    {% if config.LANGUAGE == 'EN' %}No rain/snow recently{% else %}近期无雨雪{% endif %}
                                 </div>
                                 {% endif %}
                             </div>

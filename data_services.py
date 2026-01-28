@@ -115,34 +115,34 @@ def get_location_name(lat, lon):
     return "未知地点"
 
 def get_weather(lat=DEFAULT_LAT, lon=DEFAULT_LON):
-    cached = weather_cache.get('weather_data_v2')
+    cached = weather_cache.get('weather_data_v3')
     if cached: return cached
 
     weather_data = {
-        "location": {"name": "Loading..."},
-        "current": {"temp": "--", "humidity": "--", "desc": "N/A", "icon": "", "rain_chance": "--"},
+        "location": {"name": "Singapore"},  # Hardcoded city name
+        "current": {
+            "temp": "--", 
+            "humidity": "--", 
+            "desc": "N/A", 
+            "icon": "", 
+            "rain_chance": "--",
+            "uv": "--",
+            "aqi": "--",
+            "aqi_level": "未知"
+        },
         "forecast": [],
         "tomorrow": {"label": "", "icon": "", "temp": "", "desc": ""}
     }
 
     try:
-        # 0. Get Location Name
-        loc_name = get_location_name(lat, lon)
-        weather_data['location']['name'] = loc_name
-        
-        # Open-Meteo API
-        # current=temperature_2m,relative_humidity_2m,weather_code
-        # hourly=temperature_2m,weather_code (for next 3 hours)
-        # daily=weather_code,temperature_2m_max,temperature_2m_min (for tomorrow)
-        # timezone=Asia/Singapore
-        
+        # Open-Meteo Weather API with UV index
         url = "https://api.open-meteo.com/v1/forecast"
         params = {
             "latitude": lat,
             "longitude": lon,
-            "current": "temperature_2m,relative_humidity_2m,weather_code",
+            "current": "temperature_2m,relative_humidity_2m,weather_code,uv_index",
             "hourly": "temperature_2m,weather_code,precipitation_probability",
-            "daily": "weather_code,temperature_2m_max,temperature_2m_min",
+            "daily": "weather_code,temperature_2m_max,temperature_2m_min,uv_index_max",
             "timezone": "Asia/Singapore"
         }
         
@@ -153,18 +153,49 @@ def get_weather(lat=DEFAULT_LAT, lon=DEFAULT_LON):
         temp = round(current.get("temperature_2m", 0))
         hum = current.get("relative_humidity_2m", 0)
         code = current.get("weather_code", 0)
+        uv_index = current.get("uv_index", 0)
         desc_cn, icon = map_wmo_to_chinese(code)
         
         weather_data['current']['temp'] = temp
-        weather_data['current']['humidity'] = hum
+        weather_data['current']['humidity'] = f"{hum}%"
         weather_data['current']['desc'] = desc_cn
         weather_data['current']['icon'] = icon
+        weather_data['current']['uv'] = round(uv_index, 1) if uv_index else 0
         
-        # Rain chance mapping from code is tricky, using raw daily prob or intuitive from code
-        # Let's check next hour precip prob
+        # Get AQI from Open-Meteo Air Quality API
+        try:
+            aqi_url = "https://air-quality-api.open-meteo.com/v1/air-quality"
+            aqi_params = {
+                "latitude": lat,
+                "longitude": lon,
+                "current": "pm2_5,pm10,us_aqi",
+                "timezone": "Asia/Singapore"
+            }
+            aqi_resp = requests.get(aqi_url, params=aqi_params, timeout=10).json()
+            aqi_current = aqi_resp.get("current", {})
+            us_aqi = aqi_current.get("us_aqi", 0)
+            weather_data['current']['aqi'] = us_aqi if us_aqi else "--"
+            
+            # AQI level mapping (US EPA standard)
+            if us_aqi and us_aqi != "--":
+                if us_aqi <= 50:
+                    weather_data['current']['aqi_level'] = "优"
+                elif us_aqi <= 100:
+                    weather_data['current']['aqi_level'] = "良"
+                elif us_aqi <= 150:
+                    weather_data['current']['aqi_level'] = "轻度"
+                elif us_aqi <= 200:
+                    weather_data['current']['aqi_level'] = "中度"
+                elif us_aqi <= 300:
+                    weather_data['current']['aqi_level'] = "重度"
+                else:
+                    weather_data['current']['aqi_level'] = "严重"
+        except Exception as e:
+            print(f"AQI Error: {e}")
+        
+        # Rain chance
         hourly = resp.get("hourly", {})
         precip_probs = hourly.get("precipitation_probability", [])
-        # Assume first element is current hour or close to it
         current_rain_prob = precip_probs[0] if precip_probs else 0
         weather_data['current']['rain_chance'] = f"{current_rain_prob}%"
 
@@ -277,7 +308,7 @@ def get_weather(lat=DEFAULT_LAT, lon=DEFAULT_LON):
             weather_data['tomorrow'] = {
                 "label": "明天", # Hardcoded Chinese
                 "icon": d_icon,
-                "temp": f"{t_max}/{t_min}",
+                "temp": f"{t_max}/{t_min}°",
                 "desc": d_desc
             }
 

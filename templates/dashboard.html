@@ -80,32 +80,49 @@
                 <!-- Divider -->
                 <div class="h-[4px] bg-black w-full mt-6"></div>
 
-                <!-- Bottom: Local Time -->
-                <div id="local-time-placeholder" class="flex-grow flex items-center justify-center pt-4">
-                   <div class="text-center w-full">
-                       <span class="text-3xl text-gray-500 font-bold block mb-2 tracking-[0.3em] uppercase">Local Time</span>
-                       <span class="text-[11rem] font-black tracking-tighter leading-none block">12:34</span>
-                   </div>
+                <!-- Bottom: Reserved for local time (rendered by Kindle) -->
+                <div id="local-time-placeholder" class="flex-grow flex items-center justify-center">
                 </div>
             </div>
 
             <!-- 2. Weather & Forecast (Top Right) -->
             <div class="panel w-1/2 flex flex-col p-8 pb-4 justify-between"> 
                 <!-- Top Part: Current Weather -->
-                <!-- Reduced flex-1 to allow bottom to grow, or just used fixed heights effectively -->
                 <div class="flex flex-col flex-grow justify-start pt-2">
-                    <div class="flex justify-between items-start mb-2">
+                    <!-- Header Row: City + Environmental Indicators -->
+                    <div class="flex justify-between items-start mb-4">
+                        <!-- Left: City Name (smaller) -->
                         <div>
-                             <span class="text-6xl font-black block">{{ weather.location.name }}</span>
+                             <span class="text-4xl font-bold text-gray-700 block">Singapore</span>
                         </div>
-                        <div class="text-right">
-                            <div class="text-3xl font-bold mb-1 text-gray-600">降雨概率</div>
-                            <div class="text-6xl font-black">{{ weather.current.rain_chance }}</div>
+                        
+                        <!-- Right: Environmental Indicators Row -->
+                        <div class="flex items-start gap-6">
+                            <!-- Humidity -->
+                            <div class="text-center">
+                                <div class="text-2xl font-bold text-gray-500 mb-1">湿度</div>
+                                <div class="text-4xl font-black">{{ weather.current.humidity }}</div>
+                            </div>
+                            <!-- UV Index -->
+                            <div class="text-center">
+                                <div class="text-2xl font-bold text-gray-500 mb-1">UV</div>
+                                <div class="text-4xl font-black">{{ weather.current.uv }}</div>
+                            </div>
+                            <!-- AQI -->
+                            <div class="text-center">
+                                <div class="text-2xl font-bold text-gray-500 mb-1">空气</div>
+                                <div class="text-4xl font-black">{{ weather.current.aqi }}</div>
+                            </div>
+                            <!-- Rain Probability -->
+                            <div class="text-center">
+                                <div class="text-2xl font-bold text-gray-500 mb-1">降雨</div>
+                                <div class="text-4xl font-black">{{ weather.current.rain_chance }}</div>
+                            </div>
                         </div>
                     </div>
                     
                     <!-- Main Weather Display -->
-                    <div class="flex items-start justify-between px-2 mt-2">
+                    <div class="flex items-start justify-between px-2 mt-4">
                         <!-- Left: Icon + Weather Name (Same Line) and Alerts Below -->
                         <div class="flex flex-col">
                             <!-- Icon and Weather Name in Same Row -->
@@ -122,7 +139,7 @@
                                     ⚠ {{ weather.current.alert }}
                                 </div>
                                 {% elif weather.current.alert %}
-                                <!-- Rain/Snow forecast: Gray background -->
+                                <!-- Rain/Snow forecast -->
                                 <div class="inline-block text-3xl font-bold text-gray-400 px-1 py-1">
                                     {{ weather.current.alert }}
                                 </div>

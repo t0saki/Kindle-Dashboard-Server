@@ -5,6 +5,7 @@ from lunardate import LunarDate
 import holidays
 import io
 import base64
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import matplotlib
 matplotlib.use('Agg') # Non-interactive mode
 from matplotlib.figure import Figure
@@ -339,19 +340,173 @@ def get_hacker_news():
     if cached: return cached
 
     try:
-        top_ids = requests.get('https://hacker-news.firebaseio.com/v0/topstories.json', timeout=10).json()[:5]
-        stories = []
+        # Fetch Top and Best IDs in parallel
+        with threading.Lock(): # Request is thread-safe, but let's be safe
+             pass
+
+        t_start = time.time()
+        # Get IDs
+        top_ids_resp = requests.get('https://hacker-news.firebaseio.com/v0/topstories.json', timeout=5)
+        best_ids_resp = requests.get('https://hacker-news.firebaseio.com/v0/beststories.json', timeout=5)
+
+        if not top_ids_resp.ok or not best_ids_resp.ok:
+             return []
+             
+        top_ids = top_ids_resp.json()[:10]
+        best_ids = best_ids_resp.json()[:10]
+        
+        # Merge and deduplicate IDs to fetch
+        all_ids = list(set(top_ids + best_ids))
+        
+        # Check cache for individual items or fetch
+        # For simplicity, just fetch all in parallel (fast enough for 20 items usually)
+        
+        def fetch_item(sid):
+            try:
+                return requests.get(f'https://hacker-news.firebaseio.com/v0/item/{sid}.json', timeout=5).json()
+            except:
+                return None
+
+        items_map = {}
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            future_to_sid = {executor.submit(fetch_item, sid): sid for sid in all_ids}
+            for future in as_completed(future_to_sid):
+                item = future.result()
+                if item and not item.get('deleted') and not item.get('dead'):
+                    items_map[item['id']] = item
+
+        # Identify Breaking News
+        # Strategy: From Top Stories, find high velocity items
+        breaking_candidates = []
+        now = time.time()
+        
         for sid in top_ids:
-            item = requests.get(f'https://hacker-news.firebaseio.com/v0/item/{sid}.json', timeout=10).json()
-            stories.append({
+            item = items_map.get(sid)
+            if not item: continue
+            
+            score = item.get('score', 0)
+            descendants = item.get('descendants', 0)
+            title = item.get('title', "")
+            item_time = item.get('time', now)
+            age_hours = (now - item_time) / 3600
+            
+            # 1. 硬过滤：只看12小时内的，且硬硬性分数 > 50 (排除刚发几分钟的噪音)
+            if age_hours > 12 or score < 50:
+                continue
+            
+            # 2. 核心公式修正 (v3.0)
+            # 降低评论权重：(Score * 1.0) + (Comments * 0.2)
+            # 理由：大新闻靠赞，吵架贴靠评论。我们想要前者。
+            impact = score + (descendants * 0.2)
+            
+            # 3. 语义权重 (Semantic Weighting) 
+            semantic_modifier = 1.0
+            title_lower = title.lower()
+            
+            # A. 惩罚项 (Subjectivity Penalty) - 过滤 "我觉得..." "微软逼我..."
+            # 常见的个人叙事词
+            subjective_words = [" i ", " me ", " my ", " how i ", " why i ", "forced me"]
+            if any(w in title_lower for w in subjective_words):
+                semantic_modifier *= 0.4  # 狠一点，直接打4折
+            
+            # B. 奖励项 (Event Boost) - 奖励 "发布" "新版本" "重大事故"
+            event_words = [
+                "release", "launch", "announce", "available", "open source", 
+                "v1.", "v2.", "v3.", "v4.", "gpt", "claude", "llama", "deepseek",
+                "cve-", "zero-day", "hack", "outage"
+            ]
+            if any(w in title_lower for w in event_words):
+                semantic_modifier *= 1.5
+            
+            # 4. 计算 Velocity
+            # 分母改为 (Age + 1.5)^1.8，增加初始阻尼，防止刚发10分钟只有5个赞的帖子冲上来
+            velocity = (impact * semantic_modifier) / math.pow(age_hours + 1.5, 1.8)
+            
+            item['velocity'] = velocity
+            breaking_candidates.append(item)
+            
+        # Sort top stories by velocity
+        breaking_candidates.sort(key=lambda x: x['velocity'], reverse=True)
+        
+        # Best Stories (Static Quality)
+        best_candidates = []
+        for sid in best_ids:
+            item = items_map.get(sid)
+            if item:
+                best_candidates.append(item)
+        
+        # Construct Final List
+        final_list = []
+        seen_ids = set()
+        
+        # 1. Pick the #1 Breaking News if it meets a Threshold
+        # Threshold: Needs to be actually "Breaking". 
+        # A 21 point story in 1 hour -> 21 / 1^1.8 = 21.
+        # A 500 point story in 10 hours -> 500 / 10^1.8 (~63) = 7.9. 
+        # So "Flash" stories win. 
+        # Let's require a minimum velocity to displace the #1 Best Story.
+        
+        has_breaking = False
+        if breaking_candidates:
+            breaker = breaking_candidates[0]
+            # Velocity Threshold: Ensure it's not just "the newest of the junk"
+            # 50 points in 1 hour = 50 velocity.
+            # 100 points in 2 hours = 100/3.4 = 29 velocity.
+            # Let's set threshold around 30.
+            if breaker['velocity'] > 30:
+                breaker['is_breaking'] = True
+                final_list.append(breaker)
+                seen_ids.add(breaker['id'])
+                has_breaking = True
+                
+        # 2. Fill the rest with Best Stories
+        for item in best_candidates:
+            if len(final_list) >= 5: break
+            if item['id'] not in seen_ids:
+                item['is_breaking'] = False
+                final_list.append(item)
+                seen_ids.add(item['id'])
+                
+        # 3. If still not 5 (and we didn't use a breaker, or best list was short), fill
+        if len(final_list) < 5:
+             # Try remaining filtered breaking candidates
+             for item in breaking_candidates:
+                if len(final_list) >= 5: break
+                if item['id'] not in seen_ids:
+                    item['is_breaking'] = False # Only #1 gets the breaking status visual
+                    final_list.append(item)
+                    seen_ids.add(item['id'])
+             
+             # If STILL not 5, fallback to just Top Stories sorted by score
+             if len(final_list) < 5:
+                  sorted_top = sorted([items_map[sid] for sid in top_ids if sid in items_map], key=lambda x: x.get('score', 0), reverse=True)
+                  for item in sorted_top:
+                      if len(final_list) >= 5: break
+                      if item['id'] not in seen_ids:
+                          item['is_breaking'] = False
+                          final_list.append(item)
+                          seen_ids.add(item['id'])
+        
+        # Format for display
+        display_stories = []
+        for item in final_list:
+            display_stories.append({
                 "title": item.get('title'),
                 "score": item.get('score'),
-                "url": item.get('url', '')
+                "url": item.get('url', ''),
+                "id": item.get('id'),
+                "velocity": item.get('velocity', 0), # For debugging/verification
+                "time": item.get('time'), # For debugging
+                "is_breaking": item.get('is_breaking', False)
             })
-        news_cache.set('hn_top5', stories)
-        return stories
+            
+        news_cache.set('hn_top5', display_stories)
+        return display_stories
+
     except Exception as e:
         print(f"HN Error: {e}")
+        import traceback
+        traceback.print_exc()
         return []
 
 yf_lock = threading.Lock()

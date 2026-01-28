@@ -195,13 +195,19 @@
                 <div class="flex flex-col flex-grow justify-around py-1">
                     {% for story in news[:5] %}
                     <!-- Simplified HN Item logic: Rank + Title only -->
-                    <div class="flex items-center group py-4 border-b-2 border-gray-100 last:border-0">
-                        <!-- Rank -->
-                        <span class="text-5xl font-black mr-5 min-w-[3.5rem] text-right text-gray-400 group-hover:text-black leading-none">{{ loop.index }}.</span>
-                        
-                        <!-- Title (No score, no url) -->
-                        <span class="text-5xl font-bold truncate text-black leading-snug">
-                            {{ story.title }}
+                    <div class="flex items-center justify-between group py-3 border-b-2 border-gray-100 last:border-0 h-[88px]"> <!-- Fixed height constraint or consistent padding -->
+                        <div class="flex items-center flex-1 min-w-0 mr-4">
+                            <!-- Rank -->
+                            <span class="text-5xl font-black mr-4 min-w-[3rem] text-right text-gray-300 group-hover:text-black leading-none shrink-0">{{ loop.index }}.</span>
+                            
+                            <!-- Title (Dynamic font size: 5xl default, 4xl if wrapped) -->
+                            <span class="hn-story-title text-5xl font-bold text-black leading-tight line-clamp-2 break-words whitespace-normal">
+                                {{ story.title }}
+                            </span>
+                        </div>
+                        <!-- Score (Small gray number, Black if breaking) -->
+                        <span class="text-3xl font-bold {% if story.is_breaking %}text-black{% else %}text-gray-400{% endif %} shrink-0 min-w-[3rem] text-right">
+                             {{ story.score }}
                         </span>
                     </div>
                     {% endfor %}
@@ -249,6 +255,23 @@
 
     </div>
 
+    <script>
+        // Dynamic Font Sizing for HN Titles
+        window.addEventListener('load', () => {
+            const titles = document.querySelectorAll('.hn-story-title');
+            titles.forEach(title => {
+                // Check if the title text wraps to more than one line
+                // We compare scrollHeight to the calculated line-height
+                const style = window.getComputedStyle(title);
+                const lineHeight = parseFloat(style.lineHeight);
+                // Buffer of 10% to account for sub-pixel rendering differences
+                if (title.scrollHeight > lineHeight * 1.1) {
+                    title.classList.remove('text-5xl');
+                    title.classList.add('text-4xl');
+                }
+            });
+        });
+    </script>
 </body>
 </html>
 

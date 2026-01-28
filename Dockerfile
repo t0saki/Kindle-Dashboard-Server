@@ -44,4 +44,4 @@ RUN uv sync --frozen --no-dev && \
 EXPOSE 5000
 
 # Run the application
-CMD ["uv", "run", "app.py"]
+CMD ["uv", "run", "gunicorn", "-w", "2", "-b", "0.0.0.0:5000", "--timeout", "120", "app:app"]

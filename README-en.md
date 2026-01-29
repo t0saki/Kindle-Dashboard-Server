@@ -1,4 +1,6 @@
-# Kindle Oasis Dashboard Server
+# Kindle Oasis Dashboard Server (no-finance branch)
+> [!NOTE]
+> This is a **no-finance** branch. The financial section has been removed to dedicate the entire bottom half to news, using a compact single-line layout to display more items.
 
 [中文](README.md)
 
@@ -17,8 +19,7 @@ It is intended to be used with a KUAL extension (or other tools) on the Kindle t
     *   **Regional Holidays**: Supports public holiday data for various countries via the `holidays` library.
 *   **Rich Data Display**:
     *   **Weather**: Forecasts, humidity, rain probability, and trends.
-    *   **Financials**: Real-time tracking of currency, stocks, and crypto with sparklines.
-    *   **News**: Top 5 stories from Hacker News, or from a custom external JSON source.
+    *   **News**: Top stories from Hacker News with more items displayed in compact single-line format, or from a custom external JSON source.
 *   **Automated Rendering**:
     *   **Fully Configurable**: Manage resolution, language, location, and data sources via `.env`.
     *   **Multi-Device Adaptation**: While the dashboard layout follows a 1680x1264 ratio, the `/render` API automatically scales the output to your configured screen resolution.
@@ -31,10 +32,8 @@ It is intended to be used with a KUAL extension (or other tools) on the Kindle t
 *   **Rendering**: Playwright (Chromium)
 *   **Image Processing**: Pillow (Floyd-Steinberg Dithering)
 *   **Data Sources**:
-    *   `yfinance`: Stock and exchange rate data
     *   `lunardate`: Lunar date conversion
     *   `holidays`: Public holiday data
-    *   `matplotlib`: Trend chart generation
 
 ### 1. Configuration
 

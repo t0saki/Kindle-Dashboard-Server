@@ -353,7 +353,7 @@ def get_external_news(url):
         
         # Format for display - add is_external flag
         display_stories = []
-        for item in items[:5]:  # Limit to 5 items
+        for item in items[:10]:  # Limit to 10 items
             display_stories.append({
                 "title": item.get("title", ""),
                 "meta": item.get("meta", ""),
@@ -372,7 +372,7 @@ def get_hacker_news():
     if Config.NEWS_EXTERNAL_URL:
         return get_external_news(Config.NEWS_EXTERNAL_URL)
     
-    cached = news_cache.get('hn_top5')
+    cached = news_cache.get('hn_top10')
     if cached: return cached
 
     try:
@@ -388,8 +388,8 @@ def get_hacker_news():
         if not top_ids_resp.ok or not best_ids_resp.ok:
              return []
              
-        top_ids = top_ids_resp.json()[:10]
-        best_ids = best_ids_resp.json()[:10]
+        top_ids = top_ids_resp.json()[:20]
+        best_ids = best_ids_resp.json()[:20]
         
         # Merge and deduplicate IDs to fetch
         all_ids = list(set(top_ids + best_ids))
@@ -497,27 +497,27 @@ def get_hacker_news():
                 
         # 2. Fill the rest with Best Stories
         for item in best_candidates:
-            if len(final_list) >= 5: break
+            if len(final_list) >= 10: break
             if item['id'] not in seen_ids:
                 item['is_breaking'] = False
                 final_list.append(item)
                 seen_ids.add(item['id'])
                 
         # 3. If still not 5 (and we didn't use a breaker, or best list was short), fill
-        if len(final_list) < 5:
+        if len(final_list) < 10:
              # Try remaining filtered breaking candidates
              for item in breaking_candidates:
-                if len(final_list) >= 5: break
+                if len(final_list) >= 10: break
                 if item['id'] not in seen_ids:
                     item['is_breaking'] = False # Only #1 gets the breaking status visual
                     final_list.append(item)
                     seen_ids.add(item['id'])
              
              # If STILL not 5, fallback to just Top Stories sorted by score
-             if len(final_list) < 5:
+             if len(final_list) < 10:
                   sorted_top = sorted([items_map[sid] for sid in top_ids if sid in items_map], key=lambda x: x.get('score', 0), reverse=True)
                   for item in sorted_top:
-                      if len(final_list) >= 5: break
+                      if len(final_list) >= 10: break
                       if item['id'] not in seen_ids:
                           item['is_breaking'] = False
                           final_list.append(item)
@@ -537,7 +537,7 @@ def get_hacker_news():
                 "is_external": False  # Flag to indicate HN source
             })
             
-        news_cache.set('hn_top5', display_stories)
+        news_cache.set('hn_top10', display_stories)
         return display_stories
 
     except Exception as e:

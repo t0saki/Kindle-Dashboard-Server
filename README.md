@@ -1,4 +1,6 @@
-# Kindle Oasis Dashboard Server
+# Kindle Oasis Dashboard Server (no-finance branch)
+> [!NOTE]
+> 这是一个 **无金融分区 (no-finance)** 的分支。移除了金融市场板块，将下半部分空间全部留给新闻展示，并支持单行紧凑布局。
 
 [English](README-en.md)
 
@@ -15,8 +17,7 @@
 *   **丰富的数据展示**:
     *   **天气预报**: 包含气温、湿度、UV 指数、AQI、降雨概率及未来趋势趋势。
     *   **日历信息**: 包含公历日期、星期、农历日期以及自定义节假日提醒。
-    *   **金融市场**: 实时追踪汇率、股票及加密货币走势，生成迷你趋势图 (Sparklines)。
-    *   **Hacker News**: 自动抓取热门科技新闻，支持自定义外部新闻源。
+    *   **科技新闻**: 自动抓取 Hacker News 热门新闻，紧凑单行布局显示更多条目，支持自定义外部新闻源。
 *   **服务端自动化渲染**:
     *   **高度可配置**: 通过 `.env` 文件配置分辨率、语言、位置、数据源和缓存时间。
     *   **高质量抖动算法**: 渲染 16 级灰度图像并应用 **Floyd-Steinberg 抖动**，为 E-ink 屏提供最佳观感。
@@ -30,10 +31,8 @@
 *   **渲染**: Playwright (Chromium)
 *   **图像处理**: Pillow (Floyd-Steinberg Dithering)
 *   **数据源**:
-    *   `yfinance`: 股票与汇率数据
     *   `lunardate`: 农历转换
     *   `holidays`: 节假日数据
-    *   `matplotlib`: 生成趋势图
 
 ### 1. 配置文件
 

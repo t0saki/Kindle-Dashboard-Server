@@ -186,20 +186,20 @@
             </div>
         </div>
 
-        <!-- BOTTOM HALF (50%) -->
+        <!-- BOTTOM HALF (50%) - Full Width News -->
         <div class="flex flex-1 gap-[4px] min-h-0">
 
-            <!-- Left: News (65%) -->
-            <div class="panel w-[65%] flex flex-col p-8 pr-10">
+            <!-- Full Width News Panel -->
+            <div class="panel w-full flex flex-col p-8 px-10">
                 <!-- Distribute vertically -->
                 <div class="flex flex-col flex-grow justify-around py-1">
-                    {% for story in news[:5] %}
+                    {% for story in news[:8] %}
                     {% if story.is_external %}
                     <!-- External News: No index, no divider, meta on right -->
-                    <div class="flex items-center justify-between group py-3 h-[88px]">
-                        <div class="flex items-center flex-1 min-w-0 mr-4">
-                            <!-- Title only (no numbered index) -->
-                            <span class="hn-story-title text-5xl font-bold text-black leading-tight line-clamp-2 break-words whitespace-normal">
+                    <div class="flex items-center justify-between group py-1">
+                        <div class="flex items-center flex-1 min-w-0 mr-4 overflow-hidden">
+                            <!-- Title only (no numbered index), single line -->
+                            <span class="hn-story-title text-4xl font-bold text-black leading-tight truncate whitespace-nowrap">
                                 {{ story.title }}
                             </span>
                         </div>
@@ -209,14 +209,12 @@
                         </span>
                     </div>
                     {% else %}
-                    <!-- Hacker News: Rank + Title + Score with dividers -->
-                    <div class="flex items-center justify-between group py-3 border-b-2 border-gray-100 last:border-0 h-[88px]"> <!-- Fixed height constraint or consistent padding -->
-                        <div class="flex items-center flex-1 min-w-0 mr-4">
-                            <!-- Rank -->
-                            <span class="text-5xl font-black mr-4 min-w-[3rem] text-right text-gray-300 group-hover:text-black leading-none shrink-0">{{ loop.index }}.</span>
+                    <!-- Hacker News: Title + Score, no dividers, no rank -->
+                    <div class="flex items-center justify-between group py-1">
+                        <div class="flex items-center flex-1 min-w-0 mr-4 overflow-hidden">
                             
-                            <!-- Title (Dynamic font size: 5xl default, 4xl if wrapped) -->
-                            <span class="hn-story-title text-5xl font-bold text-black leading-tight line-clamp-2 break-words whitespace-normal">
+                            <!-- Title, single line with truncation -->
+                            <span class="hn-story-title text-4xl font-bold text-black leading-tight truncate whitespace-nowrap">
                                 {{ story.title }}
                             </span>
                         </div>
@@ -228,43 +226,6 @@
                     {% endif %}
                     {% endfor %}
                 </div>
-            </div>
-
-            <!-- Right: Financials (Remaining 35%) -->
-            <div class="bg-black flex-1 flex flex-col gap-[4px]">
-                {% for item in finance %}
-                <div class="panel flex-1 flex flex-col justify-center px-6 py-2">
-                    <!-- Row 1: Name + Price -->
-                    <div class="flex justify-between items-end mb-2">
-                        <span class="text-4xl font-black leading-none">{{ item.name }}</span>
-                        <span class="text-6xl font-black leading-none tracking-tighter">{{ item.price }}</span>
-                    </div>
-                    
-                    <!-- Row 2: Sparkline + Change -->
-                    <!-- Compressed height to prevent cutoff -->
-                    <div class="flex items-end justify-between h-[120px]">
-                         <!-- Sparkline -->
-                        <div class="flex-grow h-full mr-4 relative">
-                            {% if item.chart %}
-                            <img src="data:image/png;base64,{{ item.chart }}" class="w-full h-full grayscale contrast-200" style="object-fit: fill;">
-                            <!-- Baseline -->
-                            <div class="absolute bottom-0 left-0 right-0 border-b-2 border-gray-300"></div>
-                            {% else %}
-                            <div class="w-full h-full bg-gray-100 flex items-center justify-center text-xl font-bold">N/A</div>
-                            {% endif %}
-                        </div>
-
-                       <!-- Change Badge -->
-                        <div class="shrink-0 mb-2">
-                            {% if item.change >= 0 %}
-                            <span class="text-4xl font-bold bg-black text-white px-3 py-2 block min-w-[150px] text-center">▲ {{ "%.2f"|format(item.change) }}%</span>
-                            {% else %}
-                            <span class="text-4xl font-bold border-b-4 border-black text-black px-1 block min-w-[150px] text-center">▼ {{ "%.2f"|format(item.change) }}%</span>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-                {% endfor %}
             </div>
 
         </div>

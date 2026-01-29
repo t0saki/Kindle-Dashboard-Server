@@ -189,12 +189,27 @@
         <!-- BOTTOM HALF (50%) -->
         <div class="flex flex-1 gap-[4px] min-h-0">
 
-            <!-- Left: Hacker News (65%) -->
+            <!-- Left: News (65%) -->
             <div class="panel w-[65%] flex flex-col p-8 pr-10">
                 <!-- Distribute vertically -->
                 <div class="flex flex-col flex-grow justify-around py-1">
                     {% for story in news[:5] %}
-                    <!-- Simplified HN Item logic: Rank + Title only -->
+                    {% if story.is_external %}
+                    <!-- External News: No index, no divider, meta on right -->
+                    <div class="flex items-center justify-between group py-3 h-[88px]">
+                        <div class="flex items-center flex-1 min-w-0 mr-4">
+                            <!-- Title only (no numbered index) -->
+                            <span class="hn-story-title text-5xl font-bold text-black leading-tight line-clamp-2 break-words whitespace-normal">
+                                {{ story.title }}
+                            </span>
+                        </div>
+                        <!-- Meta info (small gray text on right) -->
+                        <span class="text-3xl font-bold text-gray-400 shrink-0 min-w-[3rem] text-right">
+                             {{ story.meta }}
+                        </span>
+                    </div>
+                    {% else %}
+                    <!-- Hacker News: Rank + Title + Score with dividers -->
                     <div class="flex items-center justify-between group py-3 border-b-2 border-gray-100 last:border-0 h-[88px]"> <!-- Fixed height constraint or consistent padding -->
                         <div class="flex items-center flex-1 min-w-0 mr-4">
                             <!-- Rank -->
@@ -210,6 +225,7 @@
                              {{ story.score }}
                         </span>
                     </div>
+                    {% endif %}
                     {% endfor %}
                 </div>
             </div>

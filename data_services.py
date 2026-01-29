@@ -336,7 +336,42 @@ def get_weather(lat=Config.LATITUDE, lon=Config.LONGITUDE):
         print(f"Weather Error: {e}")
         return weather_data
 
+def get_external_news(url):
+    """Fetch news from an external JSON endpoint.
+    
+    Expected format: [{"title": "...", "meta": "..."}, ...]
+    """
+    cached = news_cache.get(f'external_{url}')
+    if cached: return cached
+
+    try:
+        resp = requests.get(url, timeout=10)
+        if not resp.ok:
+            return []
+        
+        items = resp.json()
+        
+        # Format for display - add is_external flag
+        display_stories = []
+        for item in items[:5]:  # Limit to 5 items
+            display_stories.append({
+                "title": item.get("title", ""),
+                "meta": item.get("meta", ""),
+                "is_external": True
+            })
+        
+        news_cache.set(f'external_{url}', display_stories)
+        return display_stories
+    except Exception as e:
+        print(f"External News Error: {e}")
+        return []
+
+
 def get_hacker_news():
+    # Check if external URL is configured
+    if Config.NEWS_EXTERNAL_URL:
+        return get_external_news(Config.NEWS_EXTERNAL_URL)
+    
     cached = news_cache.get('hn_top5')
     if cached: return cached
 
@@ -498,7 +533,8 @@ def get_hacker_news():
                 "id": item.get('id'),
                 "velocity": item.get('velocity', 0), # For debugging/verification
                 "time": item.get('time'), # For debugging
-                "is_breaking": item.get('is_breaking', False)
+                "is_breaking": item.get('is_breaking', False),
+                "is_external": False  # Flag to indicate HN source
             })
             
         news_cache.set('hn_top5', display_stories)

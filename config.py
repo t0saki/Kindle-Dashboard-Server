@@ -79,3 +79,8 @@ class Config:
     # --- Work/Commute Logic ---
     WORK_START_HOUR = int(os.environ.get("WORK_START_HOUR", 10))
     WORK_END_HOUR = int(os.environ.get("WORK_END_HOUR", 18))
+
+    # --- News Configuration ---
+    # If set, fetches news from this URL instead of Hacker News
+    # Expected JSON format: [{"title": "...", "meta": "..."}, ...]
+    NEWS_EXTERNAL_URL = os.environ.get("NEWS_EXTERNAL_URL", "")

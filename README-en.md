@@ -18,7 +18,7 @@ It is intended to be used with a KUAL extension (or other tools) on the Kindle t
 *   **Rich Data Display**:
     *   **Weather**: Forecasts, humidity, rain probability, and trends.
     *   **Financials**: Real-time tracking of currency, stocks, and crypto with sparklines.
-    *   **News**: Top 5 stories from Hacker News.
+    *   **News**: Top 5 stories from Hacker News, or from a custom external JSON source.
 *   **Automated Rendering**:
     *   **Fully Configurable**: Manage resolution, language, location, and data sources via `.env`.
     *   **Multi-Device Adaptation**: While the dashboard layout follows a 1680x1264 ratio, the `/render` API automatically scales the output to your configured screen resolution.

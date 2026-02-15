@@ -77,15 +77,26 @@ def dashboard():
                            updated_at=datetime.datetime.now(ZoneInfo(Config.TIMEZONE)).strftime("%H:%M"),
                            config=Config)
 
+import os
+import signal
+
+# Global counter for consecutive rendering errors
+_consecutive_render_failures = 0
+MAX_RENDER_FAILURES = 5
+
 @app.route('/render')
 @app.route('/render.png')
 def render_dashboard():
     from renderer import render_dashboard_to_bytes
-    global _render_cache
+    global _render_cache, _consecutive_render_failures
     
     current_time = time.time()
     
     def prepare_response(data, timestamp):
+        # Reset failure counter on success
+        global _consecutive_render_failures
+        _consecutive_render_failures = 0
+        
         response = send_file(
             io.BytesIO(data), 
             mimetype='image/png',
@@ -128,6 +139,20 @@ def render_dashboard():
     except Exception as e:
         import traceback
         traceback.print_exc()
+        
+        _consecutive_render_failures += 1
+        print(f"Rendering failed. Failure count: {_consecutive_render_failures}/{MAX_RENDER_FAILURES}")
+        
+        if _consecutive_render_failures >= MAX_RENDER_FAILURES:
+             print("CRITICAL: Too many consecutive rendering errors. Restarting container...")
+             # Send SIGTERM to PID 1 to trigger container restart
+             # Note: This works if the container is running as root (default)
+             try:
+                 os.kill(1, signal.SIGTERM)
+             except PermissionError:
+                 print("Could not kill PID 1 (Permission Denied). Killing self instead.")
+                 os.kill(os.getpid(), signal.SIGTERM)
+
         return f"Error rendering dashboard: {e}", 500
 
 if __name__ == '__main__':

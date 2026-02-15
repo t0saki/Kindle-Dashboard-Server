@@ -13,4 +13,5 @@ dependencies = [
     "yfinance>=1.1.0",
     "playwright>=1.49.0",
     "gunicorn>=24.1.1",
+    "python-dotenv>=1.2.1",
 ]

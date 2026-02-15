@@ -48,4 +48,9 @@ RUN uv sync --frozen --no-dev && \
 EXPOSE 5000
 
 # Run the application
-CMD ["uv", "run", "gunicorn", "-w", "2", "-b", "0.0.0.0:5000", "--timeout", "120", "app:app"]
+# Copy watchdog and start script
+COPY watchdog.py start.sh ./
+RUN chmod +x start.sh
+
+# Run the application via start script
+CMD ["./start.sh"]

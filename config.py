@@ -1,32 +1,7 @@
 import os
 import ast
+from dotenv import load_dotenv
 
-def load_dotenv(path=".env"):
-    """
-    Simple .env loader to avoid adding python-dotenv dependency.
-    Does not override existing environment variables.
-    """
-    if not os.path.exists(path):
-        return
-    
-    with open(path, "r") as f:
-        for line in f:
-            line = line.strip()
-            if not line or line.startswith("#"):
-                continue
-            
-            if "=" in line:
-                key, value = line.split("=", 1)
-                key = key.strip()
-                value = value.strip()
-                
-                # Remove quotes if present
-                if (value.startswith('"') and value.endswith('"')) or \
-                   (value.startswith("'") and value.endswith("'")):
-                    value = value[1:-1]
-                
-                if key and key not in os.environ:
-                    os.environ[key] = value
 
 # Load environment variables from .env file
 load_dotenv()

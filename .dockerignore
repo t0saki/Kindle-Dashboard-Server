@@ -9,4 +9,6 @@ __pycache__
 .db
 test_*.py
 test_output_*.png
-uv.lock (unless you want strict parity)
+# uv.lock (unless you want strict parity)
+.env
+

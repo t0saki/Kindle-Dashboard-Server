@@ -5,6 +5,7 @@ from PIL import Image, ImageOps
 from config import Config
 
 
+
 def capture_dashboard(url):
     """
     Captures a screenshot of the dashboard page using Playwright.
@@ -16,11 +17,9 @@ def capture_dashboard(url):
     DESIGN_HEIGHT = 1264
 
     # Calculate scale factor based on target screen width versus design width
-    # We assume aspect ratio is reasonably preserved or handled by the user's config
-    # but strictly speaking, we scale based on width to ensure full width fit.
-    # If the user has a different aspect ratio, we might have vertical space issues,
-    # but the primary constraint is width.
-    scale_factor = Config.SCREEN_WIDTH / DESIGN_WIDTH
+    # We want 2x SSAA (Super Sampling Anti-Aliasing).
+    # Render at 2x the target resolution, then downsample later.
+    scale_factor = (Config.SCREEN_WIDTH / DESIGN_WIDTH) * 2
 
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
@@ -63,17 +62,18 @@ def process_image_for_kindle(input_bytes):
         if img.mode != 'RGB':
             img = img.convert('RGB')
 
-        # 2. Resize/Fit
+        # 2. Resize/Fit (Downsampling for SSAA)
         # We use the configured screen resolution as the target size.
         target_size = (Config.SCREEN_WIDTH, Config.SCREEN_HEIGHT)
         
         # Optimization: If the image is already at the target size (or very close), skip heavy resizing
-        # The browser capture should be exact, but we check to be safe.
+        # With SSAA enabled, the input image will be larger (2x) than target_size, so this will naturally fall through to fit()
         if img.size == target_size:
             img_fitted = img
         else:
-            # Fallback to Resize/Fit if dimensions don't match exactly
-            # This handles cases where scale factor rounding or other issues might cause slight off-by-one
+            # Fallback to Resize/Fit if dimensions don't match exactly or for SSAA downsampling
+            # This handles cases where scale factor rounding or other issues might cause slight off-by-one.
+            # Using LANCZOS for high-quality downsampling.
             img_fitted = ImageOps.fit(
                 img, 
                 target_size, 
@@ -92,9 +92,10 @@ def process_image_for_kindle(input_bytes):
         palette_img.putpalette(palette_data)
 
         # 4. Quantize + Dither
+        # User requested disabling Floyd-Steinberg dithering for cleaner image.
         img_dithered_p = img_fitted.quantize(
             palette=palette_img, 
-            dither=Image.Dither.FLOYDSTEINBERG
+            dither=Image.Dither.NONE
         )
 
         # 5. Convert back to 'L'
@@ -126,4 +127,5 @@ def render_dashboard_to_bytes(url):
     print(f"[{end_time}] Render finished in {(end_time - start_time).total_seconds()}s")
     
     return processed_png_io
+
 

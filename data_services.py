@@ -266,6 +266,25 @@ def get_weather(lat=Config.LATITUDE, lon=Config.LONGITUDE):
         # 4. Weather Alert
         alert_msg = ""
         upcoming_alerts = []
+        
+        # Precipitation code sets
+        RAIN_CODES = {61, 63, 65, 80, 81, 82, 66, 67}
+        SNOW_CODES = {71, 73, 75, 85, 86, 77}
+        STORM_CODES = {95, 96, 99}
+        DRIZZLE_CODES = {51, 53, 55}
+        ALL_PRECIP_CODES = RAIN_CODES | SNOW_CODES | STORM_CODES | DRIZZLE_CODES
+        
+        def get_precip_type(wcode):
+            if wcode in RAIN_CODES:
+                return "雨" if Config.LANGUAGE != 'EN' else "Rain"
+            elif wcode in SNOW_CODES:
+                return "雪" if Config.LANGUAGE != 'EN' else "Snow"
+            elif wcode in STORM_CODES:
+                return "雷雨" if Config.LANGUAGE != 'EN' else "T-Storm"
+            elif wcode in DRIZZLE_CODES:
+                return "小雨" if Config.LANGUAGE != 'EN' else "Drizzle"
+            return None
+        
         try:
            now_hour_idx = -1
            for i, t_str in enumerate(times):
@@ -276,52 +295,67 @@ def get_weather(lat=Config.LATITUDE, lon=Config.LONGITUDE):
            
            if now_hour_idx != -1:
                max_hours = min(now_hour_idx + 49, len(times))
-               for i in range(now_hour_idx + 1, max_hours):
-                   t_dt = datetime.datetime.fromisoformat(times[i])
-                   hours_from_now = i - now_hour_idx
-                   code = codes[i]
-                   weather_type = None
-                   
-                   # Simple alert logic
-                   if code in [61, 63, 65, 80, 81, 82, 66, 67]:
-                       weather_type = "雨" if Config.LANGUAGE != 'EN' else "Rain"
-                   elif code in [71, 73, 75, 85, 86, 77]:
-                       weather_type = "雪" if Config.LANGUAGE != 'EN' else "Snow"
-                   elif code in [95, 96, 99]:
-                       weather_type = "雷雨" if Config.LANGUAGE != 'EN' else "T-Storm"
-                   elif code in [51, 53, 55]:
-                       weather_type = "小雨" if Config.LANGUAGE != 'EN' else "Drizzle"
-                   
-                   if weather_type:
-                       upcoming_alerts.append((hours_from_now, weather_type, t_dt))
+               current_code = codes[now_hour_idx] if now_hour_idx < len(codes) else code
+               is_currently_precip = current_code in ALL_PRECIP_CODES
+               current_precip_type = get_precip_type(current_code)
                
-               if upcoming_alerts:
-                   first_alert = upcoming_alerts[0]
-                   hours, wtype, alert_dt = first_alert
+               if is_currently_precip and current_precip_type:
+                   # Currently precipitating -> find when it STOPS
+                   stop_hour = None
+                   for i in range(now_hour_idx + 1, max_hours):
+                       if codes[i] not in ALL_PRECIP_CODES:
+                           stop_hour = i - now_hour_idx
+                           break
                    
-                   label_today = "今天" if Config.LANGUAGE != 'EN' else "Today"
-                   label_tmr = "明天" if Config.LANGUAGE != 'EN' else "Tmrrw"
-                   
-                   if hours <= 3:
+                   if stop_hour:
                        if Config.LANGUAGE == 'EN':
-                           alert_msg = f"{wtype} in {hours}h"
+                           alert_msg = f"{current_precip_type} stops in {stop_hour}H"
                        else:
-                           alert_msg = f"{hours}H后有{wtype}"
-                   elif alert_dt.day == now_dt.day:
-                       if Config.LANGUAGE == 'EN':
-                           alert_msg = f"{wtype} at {alert_dt.hour}:00"
-                       else:
-                           alert_msg = f"{label_today}{alert_dt.hour}点有{wtype}"
-                   elif alert_dt.day == now_dt.day + 1:
-                       if Config.LANGUAGE == 'EN':
-                           alert_msg = f"{wtype} tom. at {alert_dt.hour}:00"
-                       else:
-                           alert_msg = f"{label_tmr}{alert_dt.hour}点有{wtype}"
+                           alert_msg = f"{stop_hour}H后{current_precip_type}停"
                    else:
+                       # Precipitation lasts the entire forecast window
+                       remaining = max_hours - now_hour_idx - 1
                        if Config.LANGUAGE == 'EN':
-                           alert_msg = f"{wtype} in {hours}h"
+                           alert_msg = f"{current_precip_type} for {remaining}H+"
                        else:
-                           alert_msg = f"{hours}H后有{wtype}"
+                           alert_msg = f"{current_precip_type}将持续至少{remaining}H"
+               else:
+                   # Not currently precipitating -> find when next precipitation STARTS
+                   for i in range(now_hour_idx + 1, max_hours):
+                       t_dt = datetime.datetime.fromisoformat(times[i])
+                       hours_from_now = i - now_hour_idx
+                       weather_type = get_precip_type(codes[i])
+                       
+                       if weather_type:
+                           upcoming_alerts.append((hours_from_now, weather_type, t_dt))
+                   
+                   if upcoming_alerts:
+                       first_alert = upcoming_alerts[0]
+                       hours, wtype, alert_dt = first_alert
+                       
+                       label_today = "今天" if Config.LANGUAGE != 'EN' else "Today"
+                       label_tmr = "明天" if Config.LANGUAGE != 'EN' else "Tmrrw"
+                       
+                       if hours <= 3:
+                           if Config.LANGUAGE == 'EN':
+                               alert_msg = f"{wtype} in {hours}h"
+                           else:
+                               alert_msg = f"{hours}H后有{wtype}"
+                       elif alert_dt.day == now_dt.day:
+                           if Config.LANGUAGE == 'EN':
+                               alert_msg = f"{wtype} at {alert_dt.hour}:00"
+                           else:
+                               alert_msg = f"{label_today}{alert_dt.hour}点有{wtype}"
+                       elif alert_dt.day == now_dt.day + 1:
+                           if Config.LANGUAGE == 'EN':
+                               alert_msg = f"{wtype} tom. at {alert_dt.hour}:00"
+                           else:
+                               alert_msg = f"{label_tmr}{alert_dt.hour}点有{wtype}"
+                       else:
+                           if Config.LANGUAGE == 'EN':
+                               alert_msg = f"{wtype} in {hours}h"
+                           else:
+                               alert_msg = f"{hours}H后有{wtype}"
         except Exception as e:
             print(f"Alert Logic Error: {e}")
 
@@ -611,42 +645,69 @@ def get_calendar_info():
         if hasattr(holidays, Config.HOLIDAY_COUNTRY):
             country_holidays = getattr(holidays, Config.HOLIDAY_COUNTRY)(years=now.year)
         else:
-            # Fallback to SG
             country_holidays = holidays.SG(years=now.year)
     except:
         country_holidays = holidays.SG(years=now.year)
         
     today_holiday = country_holidays.get(now.date())
-    
-    next_date = now.date() + datetime.timedelta(days=1)
-    next_non_working = None
-    
-    for _ in range(30):
-        is_weekend = next_date.weekday() >= 5
-        is_holiday = country_holidays.get(next_date)
-        
-        if is_weekend or is_holiday:
-            info = is_holiday if is_holiday else ("Saturday" if next_date.weekday() == 5 else "Sunday")
-            weekday_en = next_date.strftime("%A")
-            
+    today_is_weekend = now.weekday() >= 5
+    is_rest_today = bool(today_holiday) or today_is_weekend
+
+    # Determine today's status name when it's a rest day
+    today_status = None
+    if is_rest_today:
+        if today_holiday:
+            today_status = today_holiday
+        else:
             if Config.LANGUAGE == 'EN':
-                label = info
+                today_status = "Saturday" if now.weekday() == 5 else "Sunday"
             else:
-                # Basic translation for generic weekends if needed, mostly holiday names are in their lang
-                # If holidays lib returns English for SG holidays, might need translation map but out of scope?
-                # User asked "holiday origin", allowing different countries. Holidays lib usually returns local language or english.
-                # Let's assume the library return is acceptable or we display it as is.
-                if info == "Saturday": label = "周六"
-                elif info == "Sunday": label = "周日"
-                else: label = info # Use provided name
-            
-            next_non_working = {
-                "date": next_date.strftime("%m-%d"),
-                "name": label,
-                "days_away": (next_date - now.date()).days
-            }
-            break
-        next_date += datetime.timedelta(days=1)
+                today_status = "星期六" if now.weekday() == 5 else "星期日"
+
+    next_day = None
+    next_date = now.date() + datetime.timedelta(days=1)
+
+    if is_rest_today:
+        # Today is a rest day -> find next WORKDAY
+        for _ in range(30):
+            d_is_weekend = next_date.weekday() >= 5
+            d_is_holiday = country_holidays.get(next_date)
+            if not d_is_weekend and not d_is_holiday:
+                # This is a workday
+                weekday_en = next_date.strftime("%A")
+                if Config.LANGUAGE == 'EN':
+                    label = weekday_en
+                else:
+                    label = WEEKDAYS_CN.get(weekday_en, weekday_en)
+                next_day = {
+                    "type": "workday",
+                    "date": next_date.strftime("%m-%d"),
+                    "name": today_status,  # Show today's holiday/weekend name
+                    "days_away": (next_date - now.date()).days
+                }
+                break
+            next_date += datetime.timedelta(days=1)
+    else:
+        # Today is a workday -> find next REST day
+        for _ in range(30):
+            d_is_weekend = next_date.weekday() >= 5
+            d_is_holiday = country_holidays.get(next_date)
+            if d_is_weekend or d_is_holiday:
+                info = d_is_holiday if d_is_holiday else ("Saturday" if next_date.weekday() == 5 else "Sunday")
+                if Config.LANGUAGE == 'EN':
+                    label = info
+                else:
+                    if info == "Saturday": label = "星期六"
+                    elif info == "Sunday": label = "星期日"
+                    else: label = info
+                next_day = {
+                    "type": "rest",
+                    "date": next_date.strftime("%m-%d"),
+                    "name": label,
+                    "days_away": (next_date - now.date()).days
+                }
+                break
+            next_date += datetime.timedelta(days=1)
 
     weekday_en = now.strftime("%A")
     if Config.LANGUAGE == 'EN':
@@ -658,6 +719,6 @@ def get_calendar_info():
         "date_str": now.strftime("%Y-%m-%d"),
         "weekday": weekday_disp,
         "lunar": lunar_str,
-        "holiday": today_holiday,
-        "next_non_working": next_non_working
+        "is_rest_today": is_rest_today,
+        "next_day": next_day
     }

@@ -52,27 +52,23 @@
                 <!-- Top: Date Info -->
                 <div class="flex flex-row justify-between items-start">
                     <div>
-                         <div class="text-4xl font-bold mb-2 tracking-wide">
+                         <div class="text-6xl font-bold mb-2 tracking-wide">
                             {{ calendar.date_str }}
                         </div>
                         <!-- Weekday -->
                         <div class="{% if config.LANGUAGE == 'EN' %}text-[5.5rem]{% else %}text-[7rem]{% endif %} font-black leading-none mb-3 uppercase tracking-tight">{{ calendar.weekday }}</div>
-                        <div class="text-6xl font-bold mt-1 text-gray-800">{{ calendar.lunar }}</div>
-                        
-                        {% if calendar.holiday %}
-                        <div class="inline-block bg-black text-white text-4xl font-bold px-6 py-3 mt-4">
-                            {% if config.LANGUAGE == 'EN' %}Holiday:{% else %}节假日:{% endif %} {{ calendar.holiday }}
-                        </div>
-                        {% endif %}
+                        <div class="text-4xl font-bold mt-1 text-gray-800">{{ calendar.lunar }}</div>
                     </div>
                     
-                    <!-- Next Non-Working Day -->
-                    {% if calendar.next_non_working %}
+                    <!-- Next Rest/Work Day -->
+                    {% if calendar.next_day %}
                     <div class="text-right pt-2">
-                         <div class="text-4xl font-bold text-gray-500 uppercase tracking-widest mb-2">{% if config.LANGUAGE == 'EN' %}Next Off{% else %}下个休息{% endif %}</div>
-                         <div class="text-6xl font-black leading-none">{{ calendar.next_non_working.date }}</div>
-                         <div class="text-4xl font-bold mt-2">{{ calendar.next_non_working.name }}</div>
-                         <div class="text-3xl font-bold text-gray-400 mt-2">{% if config.LANGUAGE == 'EN' %}In {{ calendar.next_non_working.days_away }} days{% else %}{{ calendar.next_non_working.days_away }}天后{% endif %}</div>
+                         <div class="flex items-baseline justify-end gap-4 mb-2">
+                             <span class="text-4xl font-bold text-gray-600 uppercase tracking-widest">{% if calendar.is_rest_today %}{% if config.LANGUAGE == 'EN' %}Next Work{% else %}下个工作{% endif %}{% else %}{% if config.LANGUAGE == 'EN' %}Next Off{% else %}下个休息{% endif %}{% endif %}</span>
+                             <span class="text-4xl font-bold text-gray-500">{% if config.LANGUAGE == 'EN' %}In {{ calendar.next_day.days_away }} days{% else %}{{ calendar.next_day.days_away }}天后{% endif %}</span>
+                         </div>
+                         <div class="text-6xl font-black leading-none">{{ calendar.next_day.date }}</div>
+                         <div class="text-4xl font-bold mt-2">{{ calendar.next_day.name }}</div>
                     </div>
                     {% endif %}
                 </div>
@@ -140,12 +136,12 @@
                                 </div>
                                 {% elif weather.current.alert %}
                                 <!-- Rain/Snow forecast -->
-                                <div class="inline-block text-3xl font-bold text-gray-400 px-1 py-1">
+                                <div class="inline-block text-3xl font-bold text-gray-500 px-1 py-1">
                                     {{ weather.current.alert }}
                                 </div>
                                 {% else %}
                                 <!-- No rain/snow: Gray text -->
-                                <div class="inline-block text-3xl font-bold text-gray-400 px-1 py-1">
+                                <div class="inline-block text-3xl font-bold text-gray-500 px-1 py-1">
                                     {% if config.LANGUAGE == 'EN' %}No rain/snow recently{% else %}近期无雨雪{% endif %}
                                 </div>
                                 {% endif %}
@@ -155,7 +151,7 @@
                         <!-- Right: Temperature and High/Low (Aligned) -->
                         <div class="text-right flex flex-col items-end justify-center tabular-nums">
                             <div class="text-[9rem] font-black leading-[0.85] tracking-tighter">{{ weather.current.temp }}°</div>
-                            <div class="text-4xl font-bold text-gray-400 mt-8 mr-12 tracking-tight">{{ weather.current.high_low }}</div>
+                            <div class="text-4xl font-bold text-gray-500 mt-8 mr-12 tracking-tight">{{ weather.current.high_low }}</div>
                         </div>
                     </div>
                 </div>

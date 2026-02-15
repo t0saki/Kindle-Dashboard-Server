@@ -4,17 +4,34 @@ from playwright.sync_api import sync_playwright
 from PIL import Image, ImageOps
 from config import Config
 
+
 def capture_dashboard(url):
     """
     Captures a screenshot of the dashboard page using Playwright.
     Returns:
         bytes: The screenshot image data in PNG format.
     """
+    # Define the design resolution that matches the CSS/HTML layout
+    DESIGN_WIDTH = 1680
+    DESIGN_HEIGHT = 1264
+
+    # Calculate scale factor based on target screen width versus design width
+    # We assume aspect ratio is reasonably preserved or handled by the user's config
+    # but strictly speaking, we scale based on width to ensure full width fit.
+    # If the user has a different aspect ratio, we might have vertical space issues,
+    # but the primary constraint is width.
+    scale_factor = Config.SCREEN_WIDTH / DESIGN_WIDTH
+
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
-        # Capture at design resolution (1680x1264) irrespective of output resolution
-        # to ensure layout is correct as per user request.
-        page = browser.new_page(viewport={"width": 1680, "height": 1264})
+        
+        # We set the viewport to the DESIGN resolution so the CSS layout remains identical.
+        # We set device_scale_factor so the browser renders at a higher/lower resolution
+        # effectively scaling the output image to (DESIGN_WIDTH * scale) x (DESIGN_HEIGHT * scale).
+        page = browser.new_page(
+            viewport={"width": DESIGN_WIDTH, "height": DESIGN_HEIGHT},
+            device_scale_factor=scale_factor
+        )
         
         try:
             page.goto(url, wait_until="networkidle")
@@ -37,43 +54,6 @@ def process_image_for_kindle(input_bytes):
     The user's request says: "1680*1264" and the CSS is landscape.
     Kindle typically renders portrait. 
     If the user holds the Kindle sideways, we just need to ensure the image is 1680x1264 or 1264x1680.
-    
-    The User's sample code has: target_size=(1264, 1680) but in their prompt they ask for "1680*1264".
-    Wait, the User's CSS in initial_plan.md says:
-            width: 1680px;
-            height: 1264px;
-    And the user says "Horizontal secondary screen".
-    So the image should be 1680x1264.
-    
-    However, the User's provided python code `convert_for_oasis_fixed` has `target_size=(1264, 1680)`.
-    And it does `ImageOps.fit`.
-    
-    If the screen is physical 1264x1680 (Portrait), and user wants Landscape content:
-    We should probably render at 1680x1264, then rotate 90 degrees?
-    
-    Let's look at the User's code again:
-    `img_fitted = ImageOps.fit(img, target_size, ...)` where target_size=(1264, 1680).
-    
-    But if the dashboard is designed as 1680 width, fitting it into 1264 width will squash it or crop it if we don't rotate.
-    
-    Let's assume the user handles rotation on the device or the device is just natively landscape (some older Kindles or hacked ones might render landscape). 
-    BUT, commonly, to update the framebuffer, you send a file that matches the framebuffer dimensions.
-    Oasis 2 is 1264 x 1680 natively.
-    
-    If I send a 1680x1264 image to a 1264x1680 screen, it will look wrong unless rotated.
-    
-    Let's follow the User's `initial_plan.md` which says:
-    "Kindle Oasis 2 的 7 英寸屏幕（1680x1264 像素...）横向放置"
-    And "CSS ... width: 1680px; height: 1264px;"
-    
-    So the HTML render is 1680x1264.
-    If I produce a PNG that is 1680x1264, and the user's script `convert_for_oasis_fixed` sets `target_size=(1264, 1680)`, they might be conflicting.
-    
-    However, the USER's prompt says: "High quality render and return a 1680*1264 png image".
-    So I should output 1680x1264.
-    
-    I will stick to the requested output dimension: 1680x1264.
-    I will reuse the specific palette logic provided by the user.
     """
     
     try:
@@ -86,12 +66,20 @@ def process_image_for_kindle(input_bytes):
         # 2. Resize/Fit
         # We use the configured screen resolution as the target size.
         target_size = (Config.SCREEN_WIDTH, Config.SCREEN_HEIGHT)
-        img_fitted = ImageOps.fit(
-            img, 
-            target_size, 
-            method=Image.Resampling.LANCZOS, 
-            centering=(0.5, 0.5)
-        )
+        
+        # Optimization: If the image is already at the target size (or very close), skip heavy resizing
+        # The browser capture should be exact, but we check to be safe.
+        if img.size == target_size:
+            img_fitted = img
+        else:
+            # Fallback to Resize/Fit if dimensions don't match exactly
+            # This handles cases where scale factor rounding or other issues might cause slight off-by-one
+            img_fitted = ImageOps.fit(
+                img, 
+                target_size, 
+                method=Image.Resampling.LANCZOS, 
+                centering=(0.5, 0.5)
+            )
 
         # 3. 16-color Grayscale Palette
         palette_img = Image.new('P', (1, 1))
@@ -138,3 +126,4 @@ def render_dashboard_to_bytes(url):
     print(f"[{end_time}] Render finished in {(end_time - start_time).total_seconds()}s")
     
     return processed_png_io
+

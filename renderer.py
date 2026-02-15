@@ -19,7 +19,9 @@ def capture_dashboard(url):
     # Calculate scale factor based on target screen width versus design width
     # We want 2x SSAA (Super Sampling Anti-Aliasing).
     # Render at 2x the target resolution, then downsample later.
-    scale_factor = (Config.SCREEN_WIDTH / DESIGN_WIDTH) * 2
+    # scale_factor = (Config.SCREEN_WIDTH / DESIGN_WIDTH) * 2
+    # No SSAA
+    scale_factor = Config.SCREEN_WIDTH / DESIGN_WIDTH
 
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)

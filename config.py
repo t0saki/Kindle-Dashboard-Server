@@ -22,6 +22,10 @@ class Config:
     # --- Screen Configuration ---
     SCREEN_WIDTH = int(os.environ.get("SCREEN_WIDTH", 1680))
     SCREEN_HEIGHT = int(os.environ.get("SCREEN_HEIGHT", 1264))
+    
+    # --- Renderer Configuration ---
+    # Timeout for page loading in milliseconds
+    RENDER_TIMEOUT = int(os.environ.get("RENDER_TIMEOUT", 60000))
 
     # --- Locale & Localization ---
     LANGUAGE = os.environ.get("LANGUAGE", "CN") # CN or EN

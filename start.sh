@@ -9,7 +9,7 @@ echo "[Entrypoint] Starting application on port $PORT..."
 # Using exec format from Dockerfile but in shell:
 # "uv run gunicorn -w 2 -b 0.0.0.0:5000 --timeout 120 app:app"
 # We need to ensure we capture the PID
-uv run gunicorn -w 2 -b 0.0.0.0:$PORT --timeout 120 app:app &
+uv run gunicorn -w 2 --worker-class gthread --threads 4 -b 0.0.0.0:$PORT --timeout 120 app:app &
 APP_PID=$!
 
 # Wait for the app to initialize

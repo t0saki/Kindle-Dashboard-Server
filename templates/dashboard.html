@@ -68,7 +68,7 @@
                              <span class="text-4xl font-bold text-gray-500">{% if config.LANGUAGE == 'EN' %}In {{ calendar.next_day.days_away }} days{% else %}{{ calendar.next_day.days_away }}天后{% endif %}</span>
                          </div>
                          <div class="text-6xl font-black leading-none">{{ calendar.next_day.date }}</div>
-                         <div class="text-4xl font-bold mt-2">{{ calendar.next_day.name }}</div>
+                         <div class="text-4xl font-bold mt-2 truncate max-w-[24rem] ml-auto">{{ calendar.next_day.name }}</div>
                     </div>
                     {% endif %}
                 </div>

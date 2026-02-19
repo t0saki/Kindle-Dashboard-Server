@@ -49,7 +49,7 @@ EXPOSE 5000
 
 # Run the application
 # Copy watchdog and start script
-COPY watchdog.py start.sh ./
+COPY uptime_monitor.py start.sh ./
 RUN chmod +x start.sh
 
 # Run the application via start script

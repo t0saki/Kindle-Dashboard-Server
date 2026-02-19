@@ -17,8 +17,8 @@ echo "[Entrypoint] Waiting for application to start..."
 sleep 10
 
 # Start the watchdog in the background
-echo "[Entrypoint] Starting watchdog..."
-uv run python3 watchdog.py &
+echo "[Entrypoint] Starting watchdog (uptime monitor)..."
+uv run python3 uptime_monitor.py &
 WATCHDOG_PID=$!
 
 # Wait for any process to exit

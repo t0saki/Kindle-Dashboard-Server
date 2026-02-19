@@ -17,6 +17,11 @@ app = Flask(__name__)
 # Format: {"data": bytes, "timestamp": float}
 _render_cache = {"data": None, "timestamp": 0}
 
+@app.route('/health')
+def health():
+    print("Health check hit")
+    return "OK"
+
 @app.route('/dashboard')
 def dashboard():
     # Submit Data Fetch Tasks in Parallel
@@ -156,4 +161,5 @@ def render_dashboard():
         return f"Error rendering dashboard: {e}", 500
 
 if __name__ == '__main__':
+    print("Starting app...")
     app.run(debug=True, port=Config.PORT, host=Config.HOST)

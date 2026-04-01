@@ -33,6 +33,14 @@
         .sparkline {
             filter: grayscale(100%) contrast(200%);
         }
+
+        /* Prevent descender clipping: overflow:hidden clips at padding box edge,
+           so extra padding-bottom extends the visible area for descenders.
+           Negative margin-bottom cancels out the external layout impact. */
+        .truncate, .line-clamp-2 {
+            padding-bottom: 0.15em;
+            margin-bottom: -0.15em;
+        }
     </style>
 </head>
 <body>

@@ -2,7 +2,7 @@ name: Build and Publish Docker Image
 
 on:
   push:
-    branches: [ "main", "no-finance" ]
+    branches: [ "master", "no-finance" ]
     tags: [ 'v*.*.*' ]
   workflow_dispatch:
 
@@ -38,6 +38,9 @@ jobs:
             type=semver,pattern={{version}}
             type=sha,format=short
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -45,6 +48,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
